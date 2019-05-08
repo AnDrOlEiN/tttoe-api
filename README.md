@@ -38,7 +38,7 @@ Indicates that the game is full and players can now make moves -- they are not a
   ```
 
 #### `game_update`
-Indicates that the game is full and players can now make moves -- they are not allowed beforehand.
+Indicates that one of players made a move.
 
 **Payload**: Same as `game_start`
 

@@ -30,7 +30,8 @@ defmodule TictactoeWeb.GameChannel do
           board:
             game_pid
             |> GameServer.board()
-            |> BoardView.encode_board()
+            |> BoardView.encode_board(),
+          move: [x, y]
         })
 
         :ok
@@ -38,7 +39,8 @@ defmodule TictactoeWeb.GameChannel do
         {:end, outcome, board} ->
           broadcast!(socket, "game_end", %{
             outcome: OutcomeView.outcome_message(outcome),
-            board: BoardView.encode_board(board)
+            board: BoardView.encode_board(board),
+            move: [x, y]
           })
 
           :ok
