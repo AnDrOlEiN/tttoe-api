@@ -58,7 +58,6 @@ defmodule TictactoeWeb.GameChannel do
       |> GameSupervisor.find_or_start_game()
       |> GameServer.reset()
 
-    new_state |> inspect |> Logger.debug
     response =
       broadcast!(socket, "game_update", %{
         current_player: new_state.playing_now,
