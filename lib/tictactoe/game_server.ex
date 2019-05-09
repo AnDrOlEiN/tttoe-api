@@ -25,6 +25,8 @@ defmodule Tictactoe.GameServer do
 
   def playing_now(game), do: GenServer.call(game, :get_playing_now)
 
+  def reset(game), do: GenServer.call(game, :reset)
+
   def game_empty?(game) do
     game
     |> players()
@@ -94,6 +96,11 @@ defmodule Tictactoe.GameServer do
       error ->
         {:reply, error, state}
     end
+  end
+
+  def handle_call(:reset, _, state) do
+    new_state = Game.Logic.reset(state)
+    {:reply, new_state, new_state}
   end
 
   defp outcome_message("X"), do: :x_wins

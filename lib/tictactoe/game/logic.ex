@@ -18,6 +18,8 @@ defmodule Tictactoe.Game.Logic do
     end
   end
 
+  def reset(state), do: %State{state | board: State.Board.empty()}
+
   defp verify_players_turn(playing, trying_to_play) when playing == trying_to_play, do: :ok
   defp verify_players_turn(_, _), do: {:error, :not_players_turn}
 

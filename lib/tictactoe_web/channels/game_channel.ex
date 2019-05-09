@@ -1,5 +1,6 @@
 defmodule TictactoeWeb.GameChannel do
   use TictactoeWeb, :channel
+  require Logger
 
   alias Tictactoe.{GameSupervisor, GameServer}
   alias TictactoeWeb.{Endpoint, PresenceTracker}
@@ -22,7 +23,6 @@ defmodule TictactoeWeb.GameChannel do
 
   def handle_in("play", %{"x" => x, "y" => y}, %{topic: "game:" <> game_id} = socket) do
     game_pid = GameSupervisor.find_or_start_game(game_id)
-
     response =
       with :ok <- GameServer.play(game_pid, player_sign(socket), [x, y]) do
         broadcast!(socket, "game_update", %{
@@ -48,6 +48,22 @@ defmodule TictactoeWeb.GameChannel do
         {:error, error_identifier} ->
           {:error, %{description: error_message(error_identifier)}}
       end
+
+    {:reply, response, socket}
+  end
+
+  def handle_in("reset", _, %{topic: "game:" <> game_id} = socket) do
+    new_state =
+      game_id
+      |> GameSupervisor.find_or_start_game()
+      |> GameServer.reset()
+
+    new_state |> inspect |> Logger.debug
+    response =
+      broadcast!(socket, "game_update", %{
+        current_player: new_state.playing_now,
+        board: BoardView.encode_board(new_state.board)
+      })
 
     {:reply, response, socket}
   end
