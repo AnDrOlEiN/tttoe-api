@@ -84,3 +84,12 @@ Indicates that one of the player made reset of board
   ```json
   { "top": ["", "X", "O"], "middle": ["", "", ""], "bottom": ["O", "X", ""] }
   ```
+
+
+### Rooms rest API
+
+
+ - GET     /room - get list of rooms
+ - POST    /room - create room with name passed in json example ex. `{"name": "foo"}`
+ - GET     /room/:id - get name of room by id  
+ - DELETE  /room/:id - delete room by id
