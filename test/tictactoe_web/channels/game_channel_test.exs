@@ -91,6 +91,16 @@ defmodule TictactoeWeb.GameChannelTest do
         board: %{top: ["", "", ""], middle: ["", "X", ""], bottom: ["", "", ""]}
       })
     end
+
+    test "it makes reset correctly", %{x_socket: x_socket} do
+      ref = reset(x_socket)
+      assert_reply(ref, :ok)
+
+      assert_broadcast("game_update", %{
+        current_player: "X",
+        board: %{top: ["", "", ""], middle: ["", "", ""], bottom: ["", "", ""]}
+      })
+    end
   end
 
   describe "game endings" do
@@ -150,6 +160,10 @@ defmodule TictactoeWeb.GameChannelTest do
 
   defp join_player(player_name) do
     socket(player_name, %{}) |> subscribe_and_join(GameChannel, "game:foo")
+  end
+
+  defp reset(player_socket) do
+    push(player_socket, "reset")
   end
 
   defp join_one_player(context) do
