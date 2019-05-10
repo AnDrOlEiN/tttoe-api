@@ -12,7 +12,7 @@ defmodule Tictactoe.Application do
       game_supervisor() ++
         [
           supervisor(TictactoeWeb.Endpoint, [])
-        ] ++ presence_tracker()
+        ] ++ presence_tracker() ++ [TictactoeWeb.Room.State]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
