@@ -39,6 +39,7 @@ defmodule TictactoeWeb.PresenceTracker do
 
     game_pid = GameSupervisor.find_or_start_game(game_id)
     GameServer.remove_player(game_pid, player_sign)
+    TictactoeWeb.Room.Controller.remove_due_leave(game_id)
 
     with :stopped <- GameServer.stop_if_empty(game_pid) do
       :ok

@@ -9,7 +9,7 @@ defmodule TictactoeWeb.Room.Controller do
     %{"name" => name} = params
     uuid = UUID.uuid1()
     TictactoeWeb.Room.State.put(uuid, name)
-    json(conn, %{data: "created room with name \"#{name}\" and id \"#{uuid}\""})
+    json(conn, %{name: name, id: uuid})
   end
 
   def read(conn, params) do
@@ -21,6 +21,10 @@ defmodule TictactoeWeb.Room.Controller do
   def remove(conn, params) do
     %{"id" => id} = params
     TictactoeWeb.Room.State.delete(id)
-    json(conn, %{data: "removed room with id \"#{id}\""})
+    json(conn, %{id: id})
+  end
+
+  def remove_due_leave(id) do
+    TictactoeWeb.Room.State.delete(id)
   end
 end
