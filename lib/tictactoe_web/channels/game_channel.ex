@@ -64,7 +64,7 @@ defmodule TictactoeWeb.GameChannel do
       |> GameServer.reset()
 
     response =
-      broadcast!(socket, "game_update", %{
+      broadcast!(socket, "game_start", %{
         current_player: new_state.playing_now,
         board: BoardView.encode_board(new_state.board)
       })
