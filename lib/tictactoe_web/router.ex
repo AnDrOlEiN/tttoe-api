@@ -3,7 +3,6 @@ defmodule TictactoeWeb.Router do
 
   pipeline :api do
     plug(:accepts, ["json"])
-    plug CORSPlug, origin: "*"
   end
 
   scope "/room", TictactoeWeb do
