@@ -37,6 +37,7 @@ defmodule Tictactoe.Mixfile do
       {:gettext, "~> 0.11"},
       {:cowboy, "~> 1.0"},
       {:uuid, "~> 1.1"},
+      {:cors_plug, "~> 1.5"},
       {:distillery, "~> 2.0.11", runtime: false}
     ]
   end
