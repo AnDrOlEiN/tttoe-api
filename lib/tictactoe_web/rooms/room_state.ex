@@ -2,11 +2,11 @@ defmodule TictactoeWeb.Room.State do
   use Agent
 
   def start_link(_) do
-    Agent.start_link(fn -> %{} end, name: __MODULE__)
+    Agent.start_link(fn -> [] end, name: __MODULE__)
   end
 
   def put(key, value) do
-    Agent.update(__MODULE__, &Map.put(&1, key, value))
+    Agent.update(__MODULE__, & [%{"id" => key, "name" => value} | &1])
   end
 
   def list() do
@@ -14,10 +14,10 @@ defmodule TictactoeWeb.Room.State do
   end
 
   def get(key) do
-    Agent.get(__MODULE__, &Map.get(&1, key))
+    Agent.get(__MODULE__, & &1 |> Enum.filter(fn value -> Map.get(value, "id") == key end) |> List.first())
   end
 
   def delete(key) do
-    Agent.update(__MODULE__, &Map.delete(&1, key))
+    Agent.update(__MODULE__, &Enum.filter(&1, fn value -> Map.get(value, "id") != key end))
   end
 end
