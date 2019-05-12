@@ -6,23 +6,28 @@ defmodule TictactoeWeb.GameChannel do
   alias TictactoeWeb.{Endpoint, PresenceTracker}
   alias TictactoeWeb.View.{BoardView, OutcomeView}
 
-  def join("game:" <> game_id, _payload, socket) do
-    game_id
-    |> GameSupervisor.find_or_start_game()
-    |> GameServer.add_player()
-    |> case do
-      {:ok, player_identifier} ->
-        send(self(), {:after_join, game_id})
+  def join("game:" <> game_id, %{"nickname" => nickname, "sign" => sign}, socket) do
+    if String.length(nickname) > 0 and (String.downcase(sign) == "x" or String.downcase(sign) == "o" or sign == "") do
+      game_id
+      |> GameSupervisor.find_or_start_game()
+      |> GameServer.add_player(nickname, sign)
+      |> case do
+        {:ok, player_identifier} ->
+          send(self(), {:after_join, game_id})
 
-        {:ok, %{playing_as: player_identifier}, assign(socket, :playing_as, player_identifier)}
+          {:ok, %{playing_as: player_identifier}, assign(socket, :playing_as, %{player_identifier => nickname})}
 
-      {:error, error} ->
-        {:error, error}
+        {:error, error} ->
+          {:error, error}
+      end
+    else
+      {:error, "send nickname and sign"}
     end
   end
 
   def handle_in("play", %{"x" => x, "y" => y}, %{topic: "game:" <> game_id} = socket) do
     game_pid = GameSupervisor.find_or_start_game(game_id)
+
     response =
       with :ok <- GameServer.play(game_pid, player_sign(socket), [x, y]) do
         broadcast!(socket, "game_update", %{
