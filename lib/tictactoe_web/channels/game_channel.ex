@@ -66,7 +66,7 @@ defmodule TictactoeWeb.GameChannel do
       broadcast!(socket, "game_start", %{
         current_player: new_state.playing_now,
         board: BoardView.encode_board(new_state.board),
-        joined_players: Poison.encode(new_state.players)
+        joined_players: new_state.players
       })
 
     {:noreply, socket}
