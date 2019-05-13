@@ -64,10 +64,12 @@ defmodule TictactoeWeb.GameChannel do
       |> GameSupervisor.find_or_start_game()
       |> GameServer.reset()
 
+    joined_players = MapSet.to_list(new_state.players)
+
     broadcast!(socket, "game_start", %{
       current_player: new_state.playing_now,
       board: BoardView.encode_board(new_state.board),
-      joined_players: Map.merge(List.first(new_state.players), List.last(new_state.players))
+      joined_players: Map.merge(List.first(joined_players), List.last(joined_players))
     })
 
     {:noreply, socket}
@@ -90,7 +92,7 @@ defmodule TictactoeWeb.GameChannel do
     game_pid = GameSupervisor.find_or_start_game(game_id)
 
     if GameServer.game_ready_to_start?(game_pid) do
-      joined_players = GameServer.players(game_pid).players
+      joined_players = MapSet.to_list(GameServer.players(game_pid).players)
 
       broadcast!(socket, "game_start", %{
         current_player: GameServer.playing_now(game_pid),
