@@ -59,9 +59,12 @@ defmodule TictactoeWeb.GameChannel do
   end
 
   def handle_in("reset", _, %{topic: "game:" <> game_id} = socket) do
-    game_pid = GameSupervisor.find_or_start_game(game_id)
-    new_state = GameServer.reset(game_pid)
-    joined_players = MapSet.to_list(GameServer.players(game_pid).players)
+    new_state =
+      game_id
+      |> GameSupervisor.find_or_start_game()
+      |> GameServer.reset()
+
+    joined_players = MapSet.to_list(new_state.players.players)
 
     broadcast!(socket, "game_start", %{
       current_player: new_state.playing_now,
