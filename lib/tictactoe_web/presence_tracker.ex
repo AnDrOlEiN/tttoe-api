@@ -35,7 +35,7 @@ defmodule TictactoeWeb.PresenceTracker do
   end
 
   defp handle_leave("game:" <> game_id = topic_name, player_sign) do
-    Logger.info("Player #{player_sign} left from game #{game_id}")
+    Logger.info("Player #{inspect(player_sign)} left from game #{game_id}")
 
     game_pid = GameSupervisor.find_or_start_game(game_id)
     GameServer.remove_player(game_pid, player_sign)

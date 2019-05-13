@@ -8,7 +8,7 @@ defmodule TictactoeWeb.GameChannelTest do
 
   describe "a half-full Tictactoe game" do
     test "rejects play moves" do
-      {:ok, _, x_socket} = join_player("x")
+      {:ok, _, x_socket} = join_player("x", "bar")
 
       ref = push(x_socket, "play", %{x: 1, y: 1})
       assert_reply(ref, :error, %{description: "Game not full yet!"})
@@ -46,7 +46,7 @@ defmodule TictactoeWeb.GameChannelTest do
 
   describe "the first player joining" do
     test "does not broadcast a game_start event" do
-      {:ok, _, _} = join_player("x")
+      {:ok, _, _} = join_player("x", "bar")
 
       refute_broadcast("game_start", %{
         current_player: "X",
@@ -57,8 +57,8 @@ defmodule TictactoeWeb.GameChannelTest do
 
   describe "the last player joining" do
     test "broadcasts a game_start event with all necessary information" do
-      {:ok, _, _} = join_player("x")
-      {:ok, _, _} = join_player("o")
+      {:ok, _, _} = join_player("x", "bar")
+      {:ok, _, _} = join_player("o", "foo")
 
       assert_broadcast("game_start", %{
         current_player: "X",
@@ -71,7 +71,7 @@ defmodule TictactoeWeb.GameChannelTest do
     setup [:join_two_players]
 
     test "does not allow any more players to join" do
-      assert({:error, :game_full} == join_player("third_player"))
+      assert({:error, :game_full} == join_player("", "foobar"))
     end
 
     test "it rejects the wrong player playing a move", %{
@@ -96,7 +96,7 @@ defmodule TictactoeWeb.GameChannelTest do
       ref = reset(x_socket)
       assert_reply(ref, :ok)
 
-      assert_broadcast("game_update", %{
+      assert_broadcast("game_start", %{
         current_player: "X",
         board: %{top: ["", "", ""], middle: ["", "", ""], bottom: ["", "", ""]}
       })
@@ -107,10 +107,10 @@ defmodule TictactoeWeb.GameChannelTest do
     setup [:join_two_players, :get_game_server_pid]
 
     test "X winning", %{x_socket: x_socket, server_pid: pid} do
-      :ok = GameServer.play(pid, "X", [0, 0])
-      :ok = GameServer.play(pid, "O", [1, 0])
-      :ok = GameServer.play(pid, "X", [0, 1])
-      :ok = GameServer.play(pid, "O", [1, 1])
+      :ok = GameServer.play(pid, %{"X" => "bar"}, [0, 0])
+      :ok = GameServer.play(pid, %{"O" => "foo"}, [1, 0])
+      :ok = GameServer.play(pid, %{"X" => "bar"}, [0, 1])
+      :ok = GameServer.play(pid, %{"O" => "foo"}, [1, 1])
 
       play_move(x_socket, 0, 2)
 
@@ -121,11 +121,11 @@ defmodule TictactoeWeb.GameChannelTest do
     end
 
     test "O winning", %{o_socket: o_socket, server_pid: pid} do
-      :ok = GameServer.play(pid, "X", [0, 0])
-      :ok = GameServer.play(pid, "O", [0, 1])
-      :ok = GameServer.play(pid, "X", [1, 0])
-      :ok = GameServer.play(pid, "O", [1, 1])
-      :ok = GameServer.play(pid, "X", [0, 2])
+      :ok = GameServer.play(pid, %{"X" => "bar"}, [0, 0])
+      :ok = GameServer.play(pid, %{"O" => "foo"}, [0, 1])
+      :ok = GameServer.play(pid, %{"X" => "bar"}, [1, 0])
+      :ok = GameServer.play(pid, %{"O" => "foo"}, [1, 1])
+      :ok = GameServer.play(pid, %{"X" => "bar"}, [0, 2])
 
       play_move(o_socket, 2, 1)
 
@@ -136,14 +136,14 @@ defmodule TictactoeWeb.GameChannelTest do
     end
 
     test "draw", %{x_socket: x_socket, server_pid: pid} do
-      :ok = GameServer.play(pid, "X", [0, 0])
-      :ok = GameServer.play(pid, "O", [0, 1])
-      :ok = GameServer.play(pid, "X", [0, 2])
-      :ok = GameServer.play(pid, "O", [1, 1])
-      :ok = GameServer.play(pid, "X", [1, 2])
-      :ok = GameServer.play(pid, "O", [2, 2])
-      :ok = GameServer.play(pid, "X", [1, 0])
-      :ok = GameServer.play(pid, "O", [2, 0])
+      :ok = GameServer.play(pid, %{"X" => "bar"}, [0, 0])
+      :ok = GameServer.play(pid, %{"O" => "foo"}, [0, 1])
+      :ok = GameServer.play(pid, %{"X" => "bar"}, [0, 2])
+      :ok = GameServer.play(pid, %{"O" => "foo"}, [1, 1])
+      :ok = GameServer.play(pid, %{"X" => "bar"}, [1, 2])
+      :ok = GameServer.play(pid, %{"O" => "foo"}, [2, 2])
+      :ok = GameServer.play(pid, %{"X" => "bar"}, [1, 0])
+      :ok = GameServer.play(pid, %{"O" => "foo"}, [2, 0])
 
       play_move(x_socket, 2, 1)
 
@@ -158,8 +158,8 @@ defmodule TictactoeWeb.GameChannelTest do
     push(player_socket, "play", %{x: x, y: y})
   end
 
-  defp join_player(player_name) do
-    socket(player_name, %{}) |> subscribe_and_join(GameChannel, "game:foo")
+  defp join_player(player_mark, player_name) do
+    socket(player_mark, %{}) |> subscribe_and_join(GameChannel, "game:foo", %{"nickname" => player_name, "sign" => player_mark})
   end
 
   defp reset(player_socket) do
@@ -167,15 +167,15 @@ defmodule TictactoeWeb.GameChannelTest do
   end
 
   defp join_one_player(context) do
-    {:ok, _, x_socket} = join_player("x")
+    {:ok, _, x_socket} = join_player("x", "bar")
 
     context
     |> Map.put(:x_socket, x_socket)
   end
 
   defp join_two_players(context) do
-    {:ok, _, x_socket} = join_player("x")
-    {:ok, _, o_socket} = join_player("o")
+    {:ok, _, x_socket} = join_player("x", "foo")
+    {:ok, _, o_socket} = join_player("o", "bar")
 
     context
     |> Map.put(:x_socket, x_socket)

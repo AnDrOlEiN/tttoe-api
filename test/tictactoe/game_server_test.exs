@@ -7,22 +7,22 @@ defmodule Tictactoe.GameServerTest do
 
   describe ".add_player" do
     test "first assigns X", %{server: pid} do
-      returned_value = GameServer.add_player(pid)
+      returned_value = GameServer.add_player(pid, "foo", "X")
 
       assert(returned_value == {:ok, "X"})
     end
 
     test "then assigns O", %{server: pid} do
-      GameServer.add_player(pid)
-      returned_value = GameServer.add_player(pid)
+      GameServer.add_player(pid, "foo", "")
+      returned_value = GameServer.add_player(pid, "bar", "")
 
       assert(returned_value == {:ok, "O"})
     end
 
     test "then errors", %{server: pid} do
-      GameServer.add_player(pid)
-      GameServer.add_player(pid)
-      returned_value = GameServer.add_player(pid)
+      GameServer.add_player(pid, "foo", "O")
+      GameServer.add_player(pid, "bar", "X")
+      returned_value = GameServer.add_player(pid, "nope", "")
 
       assert(returned_value == {:error, :game_full})
     end
@@ -34,14 +34,14 @@ defmodule Tictactoe.GameServerTest do
     end
 
     test "returns :ok when the player is joined", %{server: pid} do
-      {:ok, player_sign} = GameServer.add_player(pid)
-      assert(GameServer.remove_player(pid, player_sign) == :ok)
+      {:ok, _} = GameServer.add_player(pid, "foo", "O")
+      assert(GameServer.remove_player(pid, %{"O" => "foo"}) == :ok)
     end
   end
 
   describe ".play with incomplete players" do
     test "errors when no two players", %{server: pid} do
-      assert(GameServer.play(pid, "X", [1, 1]) == {:error, :game_not_full})
+      assert(GameServer.play(pid, %{"X" => "nope"}, [1, 1]) == {:error, :game_not_full})
     end
   end
 
@@ -49,12 +49,12 @@ defmodule Tictactoe.GameServerTest do
     setup :join_all_players
 
     test "it rejects the move if it's not the players turn", %{server: pid} do
-      assert(GameServer.play(pid, "O", [1, 1]) == {:error, :not_players_turn})
+      assert(GameServer.play(pid, %{"O" => "foo"}, [1, 1]) == {:error, :not_players_turn})
     end
 
     test "the same player cannot play twice in a row", %{server: pid} do
-      assert(:ok == GameServer.play(pid, "X", [1, 1]))
-      assert({:error, :not_players_turn} == GameServer.play(pid, "X", [1, 2]))
+      assert(:ok == GameServer.play(pid, %{"X" => "bar"}, [1, 1]))
+      assert({:error, :not_players_turn} == GameServer.play(pid, %{"X" => "bar"}, [1, 2]))
     end
   end
 
@@ -62,13 +62,13 @@ defmodule Tictactoe.GameServerTest do
     setup :join_all_players
 
     test "it does not allow using the same field twice", %{server: pid} do
-      assert(:ok == GameServer.play(pid, "X", [1, 1]))
-      assert({:error, :field_used_already} == GameServer.play(pid, "O", [1, 1]))
+      assert(:ok == GameServer.play(pid, %{"X" => "bar"}, [1, 1]))
+      assert({:error, :field_used_already} == GameServer.play(pid, %{"O" => "foo"}, [1, 1]))
     end
 
     test "it works for other fields", %{server: pid} do
-      assert(:ok == GameServer.play(pid, "X", [1, 1]))
-      assert(:ok == GameServer.play(pid, "O", [1, 2]))
+      assert(:ok == GameServer.play(pid, %{"X" => "bar"}, [1, 1]))
+      assert(:ok == GameServer.play(pid, %{"O" => "foo"}, [1, 2]))
     end
   end
 
@@ -76,10 +76,10 @@ defmodule Tictactoe.GameServerTest do
     setup :join_all_players
 
     test "game ends", %{server: pid} do
-      assert(:ok == GameServer.play(pid, "X", [0, 0]))
-      assert(:ok == GameServer.play(pid, "O", [1, 0]))
-      assert(:ok == GameServer.play(pid, "X", [0, 1]))
-      assert(:ok == GameServer.play(pid, "O", [1, 1]))
+      assert(:ok == GameServer.play(pid, %{"X" => "bar"}, [0, 0]))
+      assert(:ok == GameServer.play(pid, %{"O" => "foo"}, [1, 0]))
+      assert(:ok == GameServer.play(pid, %{"X" => "bar"}, [0, 1]))
+      assert(:ok == GameServer.play(pid, %{"O" => "foo"}, [1, 1]))
 
       expected_board = %Tictactoe.Game.State.Board{
         rows: %{
@@ -89,7 +89,7 @@ defmodule Tictactoe.GameServerTest do
         }
       }
 
-      assert({:end, :x_wins, expected_board} == GameServer.play(pid, "X", [0, 2]))
+      assert({:end, :x_wins, expected_board} == GameServer.play(pid, %{"X" => "bar"}, [0, 2]))
     end
   end
 
@@ -97,14 +97,14 @@ defmodule Tictactoe.GameServerTest do
     setup :join_all_players
 
     test "game ends", %{server: pid} do
-      assert(:ok == GameServer.play(pid, "X", [0, 0]))
-      assert(:ok == GameServer.play(pid, "O", [0, 1]))
-      assert(:ok == GameServer.play(pid, "X", [0, 2]))
-      assert(:ok == GameServer.play(pid, "O", [1, 1]))
-      assert(:ok == GameServer.play(pid, "X", [1, 2]))
-      assert(:ok == GameServer.play(pid, "O", [2, 2]))
-      assert(:ok == GameServer.play(pid, "X", [1, 0]))
-      assert(:ok == GameServer.play(pid, "O", [2, 0]))
+      assert(:ok == GameServer.play(pid, %{"X" => "bar"}, [0, 0]))
+      assert(:ok == GameServer.play(pid, %{"O" => "foo"}, [0, 1]))
+      assert(:ok == GameServer.play(pid, %{"X" => "bar"}, [0, 2]))
+      assert(:ok == GameServer.play(pid, %{"O" => "foo"}, [1, 1]))
+      assert(:ok == GameServer.play(pid, %{"X" => "bar"}, [1, 2]))
+      assert(:ok == GameServer.play(pid, %{"O" => "foo"}, [2, 2]))
+      assert(:ok == GameServer.play(pid, %{"X" => "bar"}, [1, 0]))
+      assert(:ok == GameServer.play(pid, %{"O" => "foo"}, [2, 0]))
 
       expected_board = %Tictactoe.Game.State.Board{
         rows: %{
@@ -114,7 +114,7 @@ defmodule Tictactoe.GameServerTest do
         }
       }
 
-      assert({:end, :draw, expected_board} == GameServer.play(pid, "X", [2, 1]))
+      assert({:end, :draw, expected_board} == GameServer.play(pid, %{"X" => "bar"}, [2, 1]))
     end
   end
 
@@ -125,8 +125,8 @@ defmodule Tictactoe.GameServerTest do
   end
 
   defp join_all_players(%{server: pid}) do
-    {:ok, "X"} = GameServer.add_player(pid)
-    {:ok, "O"} = GameServer.add_player(pid)
+    {:ok, "X"} = GameServer.add_player(pid, "X", "bar")
+    {:ok, "O"} = GameServer.add_player(pid, "O", "foo")
     :ok
   end
 end

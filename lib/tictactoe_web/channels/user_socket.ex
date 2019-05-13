@@ -6,7 +6,7 @@ defmodule TictactoeWeb.UserSocket do
   channel("game:*", TictactoeWeb.GameChannel)
 
   ## Transports
-  transport(:websocket, Phoenix.Transports.WebSocket)
+  transport(:websocket, Phoenix.Transports.WebSocket, timeout: 300_000) # 5 minutes
   # transport :longpoll, Phoenix.Transports.LongPoll
 
   # Socket params are passed from the client and can

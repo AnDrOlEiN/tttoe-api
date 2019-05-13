@@ -7,14 +7,14 @@ defmodule Tictactoe.Game.State do
   def players(%__MODULE__{players: players}), do: players
   def board(%__MODULE__{board: board}), do: board
 
-  def add_player(current = %__MODULE__{players: players}) do
-    with {:ok, added_player, new_players} <- JoinedPlayers.add_player(players) do
+  def add_player(current = %__MODULE__{players: players}, nickname, sign) do
+    with {:ok, added_player, new_players} <- JoinedPlayers.add_player(players, nickname, sign) do
       {:ok, added_player, %__MODULE__{current | players: new_players}}
     end
   end
 
-  def remove_player(current = %__MODULE__{players: players}, player_sign) do
-    with {:ok, new_players} <- JoinedPlayers.remove_player(players, player_sign) do
+  def remove_player(current = %__MODULE__{players: players}, player_map) do
+    with {:ok, new_players} <- JoinedPlayers.remove_player(players, player_map) do
       {:ok, %__MODULE__{current | players: new_players}}
     end
   end
