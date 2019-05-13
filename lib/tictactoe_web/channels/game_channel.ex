@@ -7,7 +7,8 @@ defmodule TictactoeWeb.GameChannel do
   alias TictactoeWeb.View.{BoardView, OutcomeView}
 
   def join("game:" <> game_id, %{"nickname" => nickname, "sign" => sign}, socket) do
-    if String.length(nickname) > 0 and (String.downcase(sign) == "x" or String.downcase(sign) == "o" or sign == "") do
+    if String.length(nickname) > 0 and
+         (String.downcase(sign) == "x" or String.downcase(sign) == "o" or sign == "") do
       game_id
       |> GameSupervisor.find_or_start_game()
       |> GameServer.add_player(nickname, sign)
@@ -15,7 +16,8 @@ defmodule TictactoeWeb.GameChannel do
         {:ok, player_identifier} ->
           send(self(), {:after_join, game_id})
 
-          {:ok, %{playing_as: player_identifier}, assign(socket, :playing_as, %{player_identifier => nickname})}
+          {:ok, %{playing_as: player_identifier},
+           assign(socket, :playing_as, %{player_identifier => nickname})}
 
         {:error, error} ->
           {:error, error}
@@ -28,30 +30,30 @@ defmodule TictactoeWeb.GameChannel do
   def handle_in("play", %{"x" => x, "y" => y}, %{topic: "game:" <> game_id} = socket) do
     game_pid = GameSupervisor.find_or_start_game(game_id)
 
-      with :ok <- GameServer.play(game_pid, player_sign(socket), [x, y]) do
-        broadcast!(socket, "game_update", %{
-          current_player: GameServer.playing_now(game_pid),
-          board:
-            game_pid
-            |> GameServer.board()
-            |> BoardView.encode_board(),
+    with :ok <- GameServer.play(game_pid, player_sign(socket), [x, y]) do
+      broadcast!(socket, "game_update", %{
+        current_player: GameServer.playing_now(game_pid),
+        board:
+          game_pid
+          |> GameServer.board()
+          |> BoardView.encode_board(),
+        move: [x, y]
+      })
+
+      :ok
+    else
+      {:end, outcome, board} ->
+        broadcast!(socket, "game_end", %{
+          outcome: OutcomeView.outcome_message(outcome),
+          board: BoardView.encode_board(board),
           move: [x, y]
         })
 
         :ok
-      else
-        {:end, outcome, board} ->
-          broadcast!(socket, "game_end", %{
-            outcome: OutcomeView.outcome_message(outcome),
-            board: BoardView.encode_board(board),
-            move: [x, y]
-          })
 
-          :ok
-
-        {:error, error_identifier} ->
-          {:error, %{description: error_message(error_identifier)}}
-      end
+      {:error, error_identifier} ->
+        {:error, %{description: error_message(error_identifier)}}
+    end
 
     {:noreply, socket}
   end
@@ -62,12 +64,11 @@ defmodule TictactoeWeb.GameChannel do
       |> GameSupervisor.find_or_start_game()
       |> GameServer.reset()
 
-
-      broadcast!(socket, "game_start", %{
-        current_player: new_state.playing_now,
-        board: BoardView.encode_board(new_state.board),
-        joined_players: new_state.players
-      })
+    broadcast!(socket, "game_start", %{
+      current_player: new_state.playing_now,
+      board: BoardView.encode_board(new_state.board),
+      joined_players: Map.merge(List.first(new_state.players), List.last(new_state.players))
+    })
 
     {:noreply, socket}
   end
@@ -89,9 +90,11 @@ defmodule TictactoeWeb.GameChannel do
     game_pid = GameSupervisor.find_or_start_game(game_id)
 
     if GameServer.game_ready_to_start?(game_pid) do
+      joined_players = GameServer.players(game_pid).players
+
       broadcast!(socket, "game_start", %{
         current_player: GameServer.playing_now(game_pid),
-        joined_players: GameServer.players(game_pid).players,
+        joined_players: Map.merge(List.first(joined_players), List.last(joined_players)),
         board:
           game_pid
           |> GameServer.board()
