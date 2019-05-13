@@ -96,7 +96,7 @@ defmodule TictactoeWeb.GameChannelTest do
       ref = reset(x_socket)
       assert_reply(ref, :ok)
 
-      assert_broadcast("game_update", %{
+      assert_broadcast("game_start", %{
         current_player: "X",
         board: %{top: ["", "", ""], middle: ["", "", ""], bottom: ["", "", ""]}
       })

@@ -66,7 +66,8 @@ defmodule TictactoeWeb.GameChannel do
     response =
       broadcast!(socket, "game_start", %{
         current_player: new_state.playing_now,
-        board: BoardView.encode_board(new_state.board)
+        board: BoardView.encode_board(new_state.board),
+        joined_players: Poison.encode(new_state.players)
       })
 
     {:reply, response, socket}
@@ -91,6 +92,7 @@ defmodule TictactoeWeb.GameChannel do
     if GameServer.game_ready_to_start?(game_pid) do
       broadcast!(socket, "game_start", %{
         current_player: GameServer.playing_now(game_pid),
+        joined_players: GameServer.players(game_pid),
         board:
           game_pid
           |> GameServer.board()
