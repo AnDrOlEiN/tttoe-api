@@ -41,6 +41,6 @@
 
     - template:
         src: enviroment.j2
-        dest: "{{ env_file_catalog }}"
+        dest: "{{ env_file_path }}"
       tags: env
       become: true

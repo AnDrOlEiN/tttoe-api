@@ -1,4 +1,6 @@
 app_port: 3000
-app_image_name: ""
-nginx_image_name: ""
+app_image_name: "androlein/tttoe-api"
+nginx_image_name: "androlein/tttoe-nginx-reverse"
+dockerhub_password: "{{ vault_dockerhub_password }}"
+dockerhub_username: "{{ vault_dockerhub_username }}"
 do_token: "{{ vault_do_token }}"

@@ -8,6 +8,11 @@
 
 - hosts: all
   tasks:
+    - name: log in to registery
+      docker_login:
+        username: "{{ dockerhub_username }}"
+        password: "{{ dockerhub_password }}"
+
     - name: pull nginx
       docker_image:
         name: "{{ nginx_image_name }}:latest"
@@ -25,7 +30,7 @@
         state: started
         restart_policy: always
         image: "{{ app_image_name }}"
-        env_file: "{{ env_file_catalog }}"
+        env_file: "{{ env_file_path }}"
         exposed_ports:
           - 3000
         networks:
