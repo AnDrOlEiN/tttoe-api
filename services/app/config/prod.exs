@@ -16,7 +16,7 @@ use Mix.Config
 config :tictactoe, TictactoeWeb.Endpoint,
   load_from_system_env: true,
   server: true,
-  url: [host: "tictactoe.janfornoff.com", port: 80],
+  url: [host: "example.com", port: 80],
   check_origin: false
 
 # Do not print debug messages in production

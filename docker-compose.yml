@@ -1,0 +1,18 @@
+version: '3.3'
+
+services:
+  app:
+    env_file: '.env'
+    build:
+      context: services/app
+    expose:
+      - '${PORT}'
+    volumes:
+      - '~/.bash_history:/.bash_history'
+  nginx:
+    build:
+      context: services/nginx
+    ports:
+      - '80:80'
+    depends_on:
+      - app

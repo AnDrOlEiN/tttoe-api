@@ -1,0 +1,46 @@
+---
+- hosts: all
+
+
+  roles:
+    - role: "nickjj.docker"
+      tags: ["docker"]
+
+  pre_tasks:
+    - apt:
+        update_cache: true
+        name:
+          - python3
+          - python3-pip
+      become: true
+
+    - name: ensure group docker exists
+      group:
+        name: docker
+      become: true
+
+    - pip:
+        name: docker
+      become: true
+
+  post_tasks:
+    - user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: true
+      become: true
+    - docker_network:
+        name: "{{ tttoe_app_network }}"
+      tags: docker_network
+
+  tasks:
+    - name: create app dir
+      file:
+        path: "{{ app_catalog }}"
+        state: directory
+
+    - template:
+        src: enviroment.j2
+        dest: "{{ env_file_catalog }}"
+      tags: env
+      become: true

@@ -1,0 +1,9 @@
+ansible_user: me
+ansible_ssh_pass: "{{ vault_ansible_ssh_pass }}"
+ansible_python_interpreter: "/usr/bin/env python3"
+
+tttoe_app_network: tttoe_app_network
+catalor_user: me
+catalor_user_home: me
+app_catalog: "{{ catalor_user_home }}/tttoe_app"
+env_file_catalog: "{{ app_catalog }}/.env"

@@ -1,0 +1,4 @@
+app_port: 3000
+app_image_name: ""
+nginx_image_name: ""
+do_token: "{{ vault_do_token }}"

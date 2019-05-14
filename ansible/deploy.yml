@@ -1,0 +1,44 @@
+---
+- hosts: all
+  gather_facts: no
+
+  tasks:
+    - set_fact: app_image_name={{ app_image_name }}
+      tags: always
+
+- hosts: all
+  tasks:
+    - name: pull nginx
+      docker_image:
+        name: "{{ nginx_image_name }}:latest"
+        force: yes
+
+    - name: pull app
+      docker_image:
+        name: "{{ app_image_name }}"
+        force: yes
+
+    - name: start app
+      docker_container:
+        recreate: yes
+        name: app
+        state: started
+        restart_policy: always
+        image: "{{ app_image_name }}"
+        env_file: "{{ env_file_catalog }}"
+        exposed_ports:
+          - 3000
+        networks:
+          - name: "{{ tttoe_app_network }}"
+      tags: app
+
+    - name: start nginx
+      docker_container:
+        name: nginx
+        image: "{{ nginx_image_name }}:latest"
+        state: started
+        restart_policy: always
+        networks:
+          - name: "{{ tttoe_app_network }}"
+        ports:
+          - 80:80

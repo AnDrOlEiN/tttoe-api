@@ -19,9 +19,6 @@ RUN mix release
 # Release
 FROM alpine:3.7
 
-ENV PORT 4000
-EXPOSE 4000
-
 RUN mkdir /app
 RUN apk update && apk add bash openssl
 

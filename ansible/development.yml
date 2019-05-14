@@ -1,0 +1,8 @@
+---
+- hosts: all
+  gather_facts: no
+  tasks:
+    - template:
+        src: enviroment.j2
+        dest: ../.env
+      tags: env
