@@ -5,4 +5,4 @@ install:
 	mix deps.get
 
 start:
-	_build/dev/rel/tictactoe/bin/tictactoe foreground
+	mix phx.server
