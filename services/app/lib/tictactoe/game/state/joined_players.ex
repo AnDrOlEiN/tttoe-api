@@ -32,6 +32,13 @@ defmodule Tictactoe.Game.State.JoinedPlayers do
     joined_players == none()
   end
 
+  def select_player_randomly() do
+    case Enum.random(0..1) do
+      1 -> "X"
+      0 -> "O"
+    end
+  end
+
   defp check_sign(players, sign) do
     case sign do
       n when n in ["X", "O"] ->
@@ -65,6 +72,7 @@ defmodule Tictactoe.Game.State.JoinedPlayers do
       "O" -> "X"
     end
   end
+
 
   defp full?(%__MODULE__{players: players}) do
     MapSet.size(players) == 2

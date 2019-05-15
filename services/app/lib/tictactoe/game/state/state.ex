@@ -1,6 +1,6 @@
 defmodule Tictactoe.Game.State do
   alias Tictactoe.Game.State.{Board, JoinedPlayers}
-  defstruct players: JoinedPlayers.none(), board: Board.empty(), playing_now: "X"
+  defstruct players: JoinedPlayers.none(), board: Board.empty(), playing_now: JoinedPlayers.select_player_randomly()
 
   def initial, do: %__MODULE__{}
 
