@@ -12,6 +12,7 @@
       docker_login:
         username: "{{ dockerhub_username }}"
         password: "{{ dockerhub_password }}"
+      tags: app
 
     - name: pull nginx
       docker_image:
@@ -20,8 +21,9 @@
 
     - name: pull app
       docker_image:
-        name: "{{ app_image_name }}"
+        name: "{{ app_image_name }}:latest"
         force: yes
+      tags: app
 
     - name: start app
       docker_container:
