@@ -30,7 +30,7 @@ defmodule TictactoeWeb.GameChannel do
   def handle_in("play", %{"x" => x, "y" => y}, %{topic: "game:" <> game_id} = socket) do
     game_pid = GameSupervisor.find_or_start_game(game_id)
 
-    with :ok <- GameServer.play(game_pid, player_sign(socket), [x, y]) do
+    response = with :ok <- GameServer.play(game_pid, player_sign(socket), [x, y]) do
       broadcast!(socket, "game_update", %{
         current_player: GameServer.playing_now(game_pid),
         board:
@@ -55,7 +55,10 @@ defmodule TictactoeWeb.GameChannel do
         {:error, %{description: error_message(error_identifier)}}
     end
 
-    {:noreply, socket}
+    case response do
+      {:error, description} -> {:reply, response, socket}
+      _ -> {:noreply, socket}
+    end
   end
 
   def handle_in("reset", _, %{topic: "game:" <> game_id} = socket) do

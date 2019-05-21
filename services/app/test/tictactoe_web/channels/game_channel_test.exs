@@ -84,7 +84,6 @@ defmodule TictactoeWeb.GameChannelTest do
 
     test "it accepts the right player making a move", %{x_socket: x_socket} do
       ref = play_move(x_socket, 1, 1)
-      assert_reply(ref, :ok)
 
       assert_broadcast("game_update", %{
         current_player: "O",
@@ -94,7 +93,6 @@ defmodule TictactoeWeb.GameChannelTest do
 
     test "it makes reset correctly", %{x_socket: x_socket} do
       ref = reset(x_socket)
-      assert_reply(ref, :ok)
 
       assert_broadcast("game_start", %{
         current_player: "X",
