@@ -5,6 +5,10 @@ defmodule TictactoeWeb.Router do
     plug(:accepts, ["json"])
   end
 
+  scope "/", TictactoeWeb do
+    get("/", Static.Controller, :index)
+  end
+
   scope "/room", TictactoeWeb do
     pipe_through(:api)
     get("/", Room.Controller, :list)
