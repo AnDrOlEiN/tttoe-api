@@ -5,6 +5,9 @@
 - Connect a Socket to `ws://localhost:4000/socket/websocket`
 - Topics recognized are `game:<name>` (e.g., `game:foo`)
 - Joining will succeed or fail based on whether there is space in the game
+  ```json
+  { "payload": { "nickname": "name", "sign": "X" } }
+  ```
 - On success,
   ```json
   { "playing_as": "X" }
@@ -44,12 +47,16 @@ Indicates that the game is full and players can now make moves -- they are not a
   ```json
   { "top": ["", "X", "O"], "middle": ["", "", ""], "bottom": ["O", "X", ""] }
   ```
+- `joined_players`: List of pairs of player's sign and player's nickname, e.g.:
+  ```json
+  {"X": "first_player_name", "O": "second_player_name" }
+  ```
 
 #### `game_update`
 
 Indicates that one of players made a move.
 
-**Payload**: Same as `game_start`, and also
+**Payload**: Same as `game_start` without `joined_players`, and also
 
 ```json
 { "move": [0, 1] }
@@ -75,7 +82,7 @@ Indicates that a player left the game (e.g., by closing the browser tab).
 
 #### `reset`
 
-Indicates that one of the player made reset of board
+Indicates that one of the player made reset of board,
 
 **Payload**:
 
@@ -83,6 +90,10 @@ Indicates that one of the player made reset of board
 - `board`: Serialized version of the game board, e.g.:
   ```json
   { "top": ["", "X", "O"], "middle": ["", "", ""], "bottom": ["O", "X", ""] }
+  ```
+- `joined_players`: List of pairs of player's sign and player's nickname, e.g.:
+  ```json
+  {"X": "first_player_name", "O": "second_player_name" }
   ```
 
 
