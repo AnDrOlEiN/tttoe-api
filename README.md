@@ -14,6 +14,6 @@
     make app-setup in /
     
     cd services/app; make install; make start
-    
-    In this repo there are also few ansible playbooks and terraform files for creating enviroment files,
+
+ In this repo there are also few ansible playbooks and terraform files for creating enviroment files,
     setting up infrastructure, and deploying app. It's mostly for internal use
