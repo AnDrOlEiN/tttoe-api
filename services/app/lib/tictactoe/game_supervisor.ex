@@ -11,12 +11,21 @@ defmodule Tictactoe.GameSupervisor do
     DynamicSupervisor.init(strategy: :one_for_one)
   end
 
+  # Fast-path through the Registry (a concurrent ETS read): this runs on
+  # every join AND every move, and always going through start_child would
+  # serialize all games through the single DynamicSupervisor process.
   def find_or_start_game(game_id) do
-    game_id
-    |> start_game
-    |> case do
-      {:ok, pid} -> pid
-      {:error, {:already_started, pid}} -> pid
+    case whereis_game(game_id) do
+      nil ->
+        case start_game(game_id) do
+          {:ok, pid} -> pid
+          # Lost the race to a concurrent starter -> use theirs.
+          {:error, {:already_started, pid}} -> pid
+          {:error, reason} -> raise "could not start game #{inspect(game_id)}: #{inspect(reason)}"
+        end
+
+      pid ->
+        pid
     end
   end
 
