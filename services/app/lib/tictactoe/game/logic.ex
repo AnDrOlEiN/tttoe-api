@@ -2,7 +2,8 @@ defmodule Tictactoe.Game.Logic do
   alias Tictactoe.Game.{State, Logic.GameEnding}
 
   def play(%State{} = state, player, position) do
-    with :ok <- State.JoinedPlayers.verify_complete(state.players),
+    with :ok <- verify_not_ended(state),
+         :ok <- State.JoinedPlayers.verify_complete(state.players),
          :ok <- verify_players_turn(state.playing_now, player),
          {:ok, new_board} <- State.Board.set_field(state.board, player |> Map.keys() |> List.first(), position) do
       new_state =
@@ -18,7 +19,16 @@ defmodule Tictactoe.Game.Logic do
     end
   end
 
-  def reset(state), do: %State{state | board: State.Board.empty()}
+  def reset(state) do
+    %State{
+      state
+      | board: State.Board.empty(),
+        playing_now: State.JoinedPlayers.select_player_randomly()
+    }
+  end
+
+  defp verify_not_ended(state),
+    do: if(game_ended?(state), do: {:error, :game_ended}, else: :ok)
 
   defp verify_players_turn(playing, trying_to_play),
     do:

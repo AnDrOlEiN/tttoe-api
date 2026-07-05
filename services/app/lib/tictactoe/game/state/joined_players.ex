@@ -4,13 +4,18 @@ defmodule Tictactoe.Game.State.JoinedPlayers do
   def none, do: %__MODULE__{}
 
   def add_player(%__MODULE__{} = joined_players, nickname \\ "lazy_vitalya", sign \\ "X") do
-    if full?(joined_players) do
-      {:error, :game_full}
-    else
-      sign_to_add = check_sign(joined_players.players, sign)
-      new_player = MapSet.put(joined_players.players, %{sign_to_add => nickname})
+    cond do
+      full?(joined_players) ->
+        {:error, :game_full}
 
-      {:ok, sign_to_add, %{joined_players | players: new_player}}
+      nickname_taken?(joined_players, nickname) ->
+        {:error, :nickname_taken}
+
+      true ->
+        sign_to_add = check_sign(joined_players.players, sign)
+        new_player = MapSet.put(joined_players.players, %{sign_to_add => nickname})
+
+        {:ok, sign_to_add, %{joined_players | players: new_player}}
     end
   end
 
@@ -76,6 +81,10 @@ defmodule Tictactoe.Game.State.JoinedPlayers do
 
   defp full?(%__MODULE__{players: players}) do
     MapSet.size(players) == 2
+  end
+
+  defp nickname_taken?(%__MODULE__{players: players}, nickname) do
+    Enum.any?(players, fn player -> nickname in Map.values(player) end)
   end
 
   defp verify_player_joined(%__MODULE__{players: players}, player_map) do

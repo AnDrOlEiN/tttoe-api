@@ -1,8 +1,10 @@
 defmodule Tictactoe.Game.State do
   alias Tictactoe.Game.State.{Board, JoinedPlayers}
-  defstruct players: JoinedPlayers.none(), board: Board.empty(), playing_now: JoinedPlayers.select_player_randomly()
+  defstruct players: JoinedPlayers.none(), board: Board.empty(), playing_now: "X"
 
-  def initial, do: %__MODULE__{}
+  # The random pick must happen here at runtime; a defstruct default
+  # would be evaluated once at compile time and be the same for every game.
+  def initial, do: %__MODULE__{playing_now: JoinedPlayers.select_player_randomly()}
 
   def players(%__MODULE__{players: players}), do: players
   def board(%__MODULE__{board: board}), do: board
