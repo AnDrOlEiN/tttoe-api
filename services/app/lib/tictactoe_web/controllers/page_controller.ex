@@ -1,4 +1,4 @@
-defmodule TictactoeWeb.Static.Controller do
+defmodule TictactoeWeb.PageController do
   use TictactoeWeb, :controller
 
   def index(conn, _params) do

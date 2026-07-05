@@ -6,7 +6,7 @@ defmodule TictactoeWeb.Router do
   end
 
   scope "/", TictactoeWeb do
-    get("/", Static.Controller, :index)
+    get("/", PageController, :index)
   end
 
   scope "/room", TictactoeWeb do
