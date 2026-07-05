@@ -4,11 +4,13 @@ defmodule TictactoeWeb.GameChannel do
 
   alias Tictactoe.{GameSupervisor, GameServer}
   alias TictactoeWeb.{Endpoint, PresenceTracker}
-  alias TictactoeWeb.View.{BoardView, OutcomeView}
+  alias TictactoeWeb.View.{BoardView, OutcomeView, PlayersView, GameErrorView}
 
-  def join("game:" <> game_id, %{"nickname" => nickname, "sign" => sign}, socket) do
-    if String.length(nickname) > 0 and
-         (String.downcase(sign) == "x" or String.downcase(sign) == "o" or sign == "") do
+  def join("game:" <> game_id, %{"nickname" => nickname, "sign" => sign}, socket)
+      when is_binary(nickname) and is_binary(sign) do
+    sign = String.upcase(sign)
+
+    if String.length(nickname) > 0 and sign in ["X", "O", ""] do
       game_id
       |> GameSupervisor.find_or_start_game()
       |> GameServer.add_player(nickname, sign)
@@ -27,10 +29,15 @@ defmodule TictactoeWeb.GameChannel do
     end
   end
 
-  def handle_in("play", %{"x" => x, "y" => y}, %{topic: "game:" <> game_id} = socket) do
+  def join("game:" <> _game_id, _payload, _socket) do
+    {:error, "send nickname and sign"}
+  end
+
+  def handle_in("play", %{"x" => x, "y" => y}, %{topic: "game:" <> game_id} = socket)
+      when is_integer(x) and is_integer(y) do
     game_pid = GameSupervisor.find_or_start_game(game_id)
 
-    response = with :ok <- GameServer.play(game_pid, player_sign(socket), [x, y]) do
+    with :ok <- GameServer.play(game_pid, player_sign(socket), [x, y]) do
       broadcast!(socket, "game_update", %{
         current_player: GameServer.playing_now(game_pid),
         board:
@@ -40,7 +47,7 @@ defmodule TictactoeWeb.GameChannel do
         move: [x, y]
       })
 
-      :ok
+      {:noreply, socket}
     else
       {:end, outcome, board} ->
         broadcast!(socket, "game_end", %{
@@ -49,16 +56,15 @@ defmodule TictactoeWeb.GameChannel do
           move: [x, y]
         })
 
-        :ok
+        {:noreply, socket}
 
       {:error, error_identifier} ->
-        {:error, %{description: error_message(error_identifier)}}
+        {:reply, {:error, %{description: GameErrorView.error_message(error_identifier)}}, socket}
     end
+  end
 
-    case response do
-      {:error, description} -> {:reply, response, socket}
-      _ -> {:noreply, socket}
-    end
+  def handle_in("play", _payload, socket) do
+    {:reply, {:error, %{description: GameErrorView.error_message(:invalid_payload)}}, socket}
   end
 
   def handle_in("reset", _, %{topic: "game:" <> game_id} = socket) do
@@ -67,22 +73,34 @@ defmodule TictactoeWeb.GameChannel do
       |> GameSupervisor.find_or_start_game()
       |> GameServer.reset()
 
-    joined_players = MapSet.to_list(new_state.players.players)
-
     broadcast!(socket, "game_start", %{
       current_player: new_state.playing_now,
       board: BoardView.encode_board(new_state.board),
-      joined_players: Map.merge(List.first(joined_players), List.last(joined_players))
+      joined_players: PlayersView.encode_players(new_state.players)
     })
 
     {:noreply, socket}
   end
 
   def handle_info({:after_join, game_id}, socket) do
-    start_game_if_necessary(game_id, socket)
+    game_pid = GameSupervisor.find_or_start_game(game_id)
+
+    Process.monitor(game_pid)
+    start_game_if_necessary(game_pid, socket)
     track_player_presence(socket)
 
     {:noreply, socket}
+  end
+
+  # The game server stops normally when the last player leaves; a crash
+  # means the game state is gone, so close the channel and let the client rejoin.
+  def handle_info({:DOWN, _ref, :process, _pid, reason}, socket)
+      when reason in [:normal, :shutdown] do
+    {:noreply, socket}
+  end
+
+  def handle_info({:DOWN, _ref, :process, _pid, _reason}, socket) do
+    {:stop, :shutdown, socket}
   end
 
   def broadcast_left_player(game_topic) do
@@ -91,15 +109,11 @@ defmodule TictactoeWeb.GameChannel do
 
   defp player_sign(socket), do: socket.assigns[:playing_as]
 
-  defp start_game_if_necessary(game_id, socket) do
-    game_pid = GameSupervisor.find_or_start_game(game_id)
-
+  defp start_game_if_necessary(game_pid, socket) do
     if GameServer.game_ready_to_start?(game_pid) do
-      joined_players = MapSet.to_list(GameServer.players(game_pid).players)
-
       broadcast!(socket, "game_start", %{
         current_player: GameServer.playing_now(game_pid),
-        joined_players: Map.merge(List.first(joined_players), List.last(joined_players)),
+        joined_players: game_pid |> GameServer.players() |> PlayersView.encode_players(),
         board:
           game_pid
           |> GameServer.board()
@@ -110,14 +124,5 @@ defmodule TictactoeWeb.GameChannel do
 
   defp track_player_presence(socket) do
     {:ok, _} = PresenceTracker.track_player(socket, player_sign(socket))
-  end
-
-  defp error_message(error_identifier) do
-    case error_identifier do
-      :game_not_full -> "Game not full yet!"
-      :not_players_turn -> "Not your turn!"
-      :invalid_position -> "Invalid field coordinate!"
-      :field_used_already -> "Field used already!"
-    end
   end
 end
