@@ -8,3 +8,7 @@ config :tictactoe, TictactoeWeb.Endpoint,
 
 # Print only warnings and errors during test
 config :logger, level: :warn
+
+# Short TTL so room-sweep tests don't have to wait; the sweep itself
+# only runs when triggered explicitly (or after the 5-minute interval).
+config :tictactoe, room_ttl: 50

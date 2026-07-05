@@ -11,9 +11,9 @@ defmodule TictactoeWeb.Router do
 
   scope "/room", TictactoeWeb do
     pipe_through(:api)
-    get("/", Room.Controller, :list)
-    post("/", Room.Controller, :create)
-    get("/:id", Room.Controller, :read)
-    delete("/:id", Room.Controller, :remove)
+    get("/", RoomController, :list)
+    post("/", RoomController, :create)
+    get("/:id", RoomController, :read)
+    delete("/:id", RoomController, :remove)
   end
 end

@@ -2,7 +2,7 @@ defmodule TictactoeWeb.PresenceTracker do
   @behaviour Phoenix.Tracker
   require Logger
 
-  alias Tictactoe.{GameSupervisor, GameServer}
+  alias Tictactoe.{GameSupervisor, GameServer, Rooms}
   alias TictactoeWeb.GameChannel
 
   def start_link() do
@@ -37,15 +37,17 @@ defmodule TictactoeWeb.PresenceTracker do
   defp handle_leave("game:" <> game_id = topic_name, player_sign) do
     Logger.info("Player #{inspect(player_sign)} left from game #{game_id}")
 
-    game_pid = GameSupervisor.find_or_start_game(game_id)
-    GameServer.remove_player(game_pid, player_sign)
-    TictactoeWeb.Room.Controller.remove_due_leave(game_id)
+    case GameSupervisor.whereis_game(game_id) do
+      nil ->
+        Rooms.delete(game_id)
 
-    with :stopped <- GameServer.stop_if_empty(game_pid) do
-      :ok
-    else
-      _ ->
-        GameChannel.broadcast_left_player(topic_name)
+      game_pid ->
+        GameServer.remove_player(game_pid, player_sign)
+
+        case GameServer.stop_if_empty(game_pid) do
+          :stopped -> Rooms.delete(game_id)
+          :not_stopped -> GameChannel.broadcast_left_player(topic_name)
+        end
     end
   end
 end
