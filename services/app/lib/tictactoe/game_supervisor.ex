@@ -28,7 +28,9 @@ defmodule Tictactoe.GameSupervisor do
   end
 
   def start_game(game_name) do
-    spec = Supervisor.Spec.worker(GameServer, [game_name])
+    # :temporary — a crashed game is not resurrected under the same name
+    # with empty state; monitoring channels shut down and clients rejoin.
+    spec = Supervisor.Spec.worker(GameServer, [game_name], restart: :temporary)
     DynamicSupervisor.start_child(__MODULE__, spec)
   end
 

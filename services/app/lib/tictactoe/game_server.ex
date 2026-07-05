@@ -53,7 +53,7 @@ defmodule Tictactoe.GameServer do
       :none -> {:error, :not_ended}
       :draw -> {:ok, :draw}
       "X" -> {:ok, :x_wins}
-      "Y" -> {:ok, :y_wins}
+      "O" -> {:ok, :o_wins}
     end
   end
 
@@ -93,8 +93,10 @@ defmodule Tictactoe.GameServer do
     with {:ok, new_game_state} <- Game.Logic.play(state, player, position) do
       {:reply, :ok, new_game_state}
     else
+      # Keep the server alive after the game ends so still-connected
+      # players can reset; it stops once everyone has left.
       {:end, outcome, end_state} ->
-        {:stop, :normal, {:end, outcome_message(outcome), Game.State.board(end_state)}, :ok}
+        {:reply, {:end, outcome_message(outcome), Game.State.board(end_state)}, end_state}
 
       error ->
         {:reply, error, state}
