@@ -113,7 +113,7 @@ class Player:
         self.name = name
         self.sign = sign
         self.ref = 0
-        self.ws = WS(HOST, PORT, PATH, name)
+        self.ws = WS(HOST, PORT, PATH)
 
     def _next_ref(self):
         self.ref += 1
@@ -134,9 +134,8 @@ class Player:
     def close(self):
         self.ws.close()
 
-    def drain(self, timeout=1.0, label=None):
+    def drain(self, timeout=1.0):
         """Read and pretty-print all messages currently available."""
-        out = []
         while True:
             frame = self.ws.recv_frame(timeout=timeout)
             if frame is None:
@@ -150,10 +149,8 @@ class Player:
             except Exception:
                 print(f"  [{self.name}] << {data}")
                 continue
-            out.append(m)
             print(f"  [{self.name}] << {fmt(m)}")
             timeout = 0.4  # after first, drain quickly
-        return out
 
 
 def fmt(m):
