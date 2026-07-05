@@ -56,13 +56,12 @@ class WS:
             data = data[:n]
         return data
 
-    def send(self, text):
-        payload = text.encode()
-        header = bytearray([0x81])  # FIN + text
+    def _send_frame(self, opcode, payload=b""):
         mask = os.urandom(4)
         ln = len(payload)
+        header = bytearray([0x80 | opcode])  # FIN + opcode
         if ln < 126:
-            header.append(0x80 | ln)
+            header.append(0x80 | ln)  # mask bit + length
         elif ln < 65536:
             header.append(0x80 | 126)
             header += struct.pack(">H", ln)
@@ -72,6 +71,9 @@ class WS:
         header += mask
         masked = bytes(b ^ mask[i % 4] for i, b in enumerate(payload))
         self.sock.sendall(bytes(header) + masked)
+
+    def send(self, text):
+        self._send_frame(0x1, text.encode())
 
     def recv_frame(self, timeout=1.0):
         self.sock.settimeout(timeout)
@@ -96,14 +98,11 @@ class WS:
         return ("text", data.decode())
 
     def _pong(self, data):
-        mask = os.urandom(4)
-        header = bytes([0x8A, 0x80 | len(data)]) + mask
-        self.sock.sendall(header + bytes(b ^ mask[i % 4] for i, b in enumerate(data)))
+        self._send_frame(0xA, data)
 
     def close(self):
         try:
-            mask = os.urandom(4)
-            self.sock.sendall(bytes([0x88, 0x80]) + mask)
+            self._send_frame(0x8)  # close frame
             self.sock.close()
         except Exception:
             pass
