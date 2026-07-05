@@ -9,7 +9,8 @@ defmodule Tictactoe.Application do
   def start(_type, _args) do
     # Define workers and child supervisors to be supervised
     children =
-      game_supervisor() ++
+      [{Registry, keys: :unique, name: Tictactoe.GameRegistry}] ++
+        game_supervisor() ++
         [
           supervisor(TictactoeWeb.Endpoint, [])
         ] ++ presence_tracker() ++ [TictactoeWeb.Room.State]

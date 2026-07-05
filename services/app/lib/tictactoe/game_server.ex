@@ -6,11 +6,13 @@ defmodule Tictactoe.GameServer do
     GenServer.start_link(__MODULE__, Game.State.initial())
   end
 
-  def start_link(game_id) when is_binary(game_id), do: game_id |> String.to_atom() |> start_link
-
-  def start_link(game_id) do
-    GenServer.start_link(__MODULE__, Game.State.initial(), name: game_id)
+  # Registered through a Registry instead of String.to_atom/1 so that
+  # user-supplied game ids cannot exhaust the atom table.
+  def start_link(game_id) when is_binary(game_id) do
+    GenServer.start_link(__MODULE__, Game.State.initial(), name: via(game_id))
   end
+
+  defp via(game_id), do: {:via, Registry, {Tictactoe.GameRegistry, game_id}}
 
   # Public API
   def add_player(game, nickname, desired_sign), do: GenServer.call(game, {:add_player, nickname, desired_sign})
@@ -56,6 +58,7 @@ defmodule Tictactoe.GameServer do
   end
 
   # GenServer callbacks
+  def init(state), do: {:ok, state}
   def handle_call({:add_player, nickname, desired_sign}, _, state) do
     with {:ok, player_identifier, new_state} <- Game.State.add_player(state, nickname, desired_sign) do
       {:reply, {:ok, player_identifier}, new_state}

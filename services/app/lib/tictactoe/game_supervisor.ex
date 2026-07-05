@@ -20,6 +20,13 @@ defmodule Tictactoe.GameSupervisor do
     end
   end
 
+  def whereis_game(game_id) do
+    case Registry.lookup(Tictactoe.GameRegistry, game_id) do
+      [{pid, _}] -> pid
+      [] -> nil
+    end
+  end
+
   def start_game(game_name) do
     spec = Supervisor.Spec.worker(GameServer, [game_name])
     DynamicSupervisor.start_child(__MODULE__, spec)
