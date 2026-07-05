@@ -1,6 +1,7 @@
 defmodule Tictactoe.GameServerTest do
   use ExUnit.Case, async: true
   alias Tictactoe.GameServer
+  alias Tictactoe.Game.State.Board
   alias Tictactoe.Game.State.Board.Row
 
   setup :start_game_server
@@ -26,6 +27,12 @@ defmodule Tictactoe.GameServerTest do
 
       assert(returned_value == {:error, :game_full})
     end
+
+    test "rejects duplicate nicknames", %{server: pid} do
+      {:ok, "X"} = GameServer.add_player(pid, "foo", "X")
+
+      assert(GameServer.add_player(pid, "foo", "O") == {:error, :nickname_taken})
+    end
   end
 
   describe ".remove_player" do
@@ -48,73 +55,117 @@ defmodule Tictactoe.GameServerTest do
   describe ".play with all players joined (player ordering)" do
     setup :join_all_players
 
-    test "it rejects the move if it's not the players turn", %{server: pid} do
-      assert(GameServer.play(pid, %{"O" => "foo"}, [1, 1]) == {:error, :not_players_turn})
+    test "it rejects the move if it's not the players turn", %{server: pid, second: second} do
+      assert(GameServer.play(pid, player(second), [1, 1]) == {:error, :not_players_turn})
     end
 
-    test "the same player cannot play twice in a row", %{server: pid} do
-      assert(:ok == GameServer.play(pid, %{"X" => "bar"}, [1, 1]))
-      assert({:error, :not_players_turn} == GameServer.play(pid, %{"X" => "bar"}, [1, 2]))
+    test "the same player cannot play twice in a row", %{server: pid, first: first} do
+      assert(:ok == GameServer.play(pid, player(first), [1, 1]))
+      assert({:error, :not_players_turn} == GameServer.play(pid, player(first), [1, 2]))
     end
   end
 
   describe ".play with all players joined (board field collision)" do
     setup :join_all_players
 
-    test "it does not allow using the same field twice", %{server: pid} do
-      assert(:ok == GameServer.play(pid, %{"X" => "bar"}, [1, 1]))
-      assert({:error, :field_used_already} == GameServer.play(pid, %{"O" => "foo"}, [1, 1]))
+    test "it does not allow using the same field twice", %{server: pid, first: first, second: second} do
+      assert(:ok == GameServer.play(pid, player(first), [1, 1]))
+      assert({:error, :field_used_already} == GameServer.play(pid, player(second), [1, 1]))
     end
 
-    test "it works for other fields", %{server: pid} do
-      assert(:ok == GameServer.play(pid, %{"X" => "bar"}, [1, 1]))
-      assert(:ok == GameServer.play(pid, %{"O" => "foo"}, [1, 2]))
+    test "it works for other fields", %{server: pid, first: first, second: second} do
+      assert(:ok == GameServer.play(pid, player(first), [1, 1]))
+      assert(:ok == GameServer.play(pid, player(second), [1, 2]))
+    end
+
+    test "it rejects out-of-range coordinates", %{server: pid, first: first} do
+      assert({:error, :invalid_position} == GameServer.play(pid, player(first), [3, 0]))
+      assert({:error, :invalid_position} == GameServer.play(pid, player(first), [0, -1]))
     end
   end
 
   describe ".play with a player winning" do
     setup :join_all_players
 
-    test "game ends", %{server: pid} do
-      assert(:ok == GameServer.play(pid, %{"X" => "bar"}, [0, 0]))
-      assert(:ok == GameServer.play(pid, %{"O" => "foo"}, [1, 0]))
-      assert(:ok == GameServer.play(pid, %{"X" => "bar"}, [0, 1]))
-      assert(:ok == GameServer.play(pid, %{"O" => "foo"}, [1, 1]))
+    test "game ends and the server stays alive", %{server: pid, first: first, second: second} do
+      assert(:ok == GameServer.play(pid, player(first), [0, 0]))
+      assert(:ok == GameServer.play(pid, player(second), [1, 0]))
+      assert(:ok == GameServer.play(pid, player(first), [0, 1]))
+      assert(:ok == GameServer.play(pid, player(second), [1, 1]))
 
-      expected_board = %Tictactoe.Game.State.Board{
+      expected_board = %Board{
         rows: %{
-          top: %Row{left: "X", middle: :empty, right: :empty},
-          middle: %Row{left: "X", middle: "O", right: :empty},
-          bottom: %Row{left: "X", middle: "O", right: :empty}
+          top: %Row{left: first, middle: :empty, right: :empty},
+          middle: %Row{left: first, middle: second, right: :empty},
+          bottom: %Row{left: first, middle: second, right: :empty}
         }
       }
 
-      assert({:end, :x_wins, expected_board} == GameServer.play(pid, %{"X" => "bar"}, [0, 2]))
+      expected_outcome = winner_outcome(first)
+
+      assert({:end, expected_outcome, expected_board} == GameServer.play(pid, player(first), [0, 2]))
+      assert(Process.alive?(pid))
+    end
+
+    test "moves after the game ended are rejected", %{server: pid, first: first, second: second} do
+      win_game(pid, first, second)
+
+      assert({:error, :game_ended} == GameServer.play(pid, player(second), [2, 2]))
+    end
+
+    test "reset after the game ended clears the board and keeps players", %{
+      server: pid,
+      first: first,
+      second: second
+    } do
+      win_game(pid, first, second)
+
+      new_state = GameServer.reset(pid)
+
+      assert(new_state.board == Board.empty())
+      assert(new_state.playing_now in ["X", "O"])
+      assert(MapSet.size(new_state.players.players) == 2)
     end
   end
 
   describe ".play with a draw" do
     setup :join_all_players
 
-    test "game ends", %{server: pid} do
-      assert(:ok == GameServer.play(pid, %{"X" => "bar"}, [0, 0]))
-      assert(:ok == GameServer.play(pid, %{"O" => "foo"}, [0, 1]))
-      assert(:ok == GameServer.play(pid, %{"X" => "bar"}, [0, 2]))
-      assert(:ok == GameServer.play(pid, %{"O" => "foo"}, [1, 1]))
-      assert(:ok == GameServer.play(pid, %{"X" => "bar"}, [1, 2]))
-      assert(:ok == GameServer.play(pid, %{"O" => "foo"}, [2, 2]))
-      assert(:ok == GameServer.play(pid, %{"X" => "bar"}, [1, 0]))
-      assert(:ok == GameServer.play(pid, %{"O" => "foo"}, [2, 0]))
+    test "game ends", %{server: pid, first: first, second: second} do
+      assert(:ok == GameServer.play(pid, player(first), [0, 0]))
+      assert(:ok == GameServer.play(pid, player(second), [0, 1]))
+      assert(:ok == GameServer.play(pid, player(first), [0, 2]))
+      assert(:ok == GameServer.play(pid, player(second), [1, 1]))
+      assert(:ok == GameServer.play(pid, player(first), [1, 2]))
+      assert(:ok == GameServer.play(pid, player(second), [2, 2]))
+      assert(:ok == GameServer.play(pid, player(first), [1, 0]))
+      assert(:ok == GameServer.play(pid, player(second), [2, 0]))
 
-      expected_board = %Tictactoe.Game.State.Board{
+      expected_board = %Board{
         rows: %{
-          top: %Row{left: "X", middle: "X", right: "O"},
-          middle: %Row{left: "O", middle: "O", right: "X"},
-          bottom: %Row{left: "X", middle: "X", right: "O"}
+          top: %Row{left: first, middle: first, right: second},
+          middle: %Row{left: second, middle: second, right: first},
+          bottom: %Row{left: first, middle: first, right: second}
         }
       }
 
-      assert({:end, :draw, expected_board} == GameServer.play(pid, %{"X" => "bar"}, [2, 1]))
+      assert({:end, :draw, expected_board} == GameServer.play(pid, player(first), [2, 1]))
+    end
+  end
+
+  describe ".game_ended?" do
+    setup :join_all_players
+
+    test "reports an X win", %{server: pid, first: first} do
+      win_as(pid, "X", first)
+
+      assert(GameServer.game_ended?(pid) == {:ok, :x_wins})
+    end
+
+    test "reports an O win", %{server: pid, first: first} do
+      win_as(pid, "O", first)
+
+      assert(GameServer.game_ended?(pid) == {:ok, :o_wins})
     end
   end
 
@@ -125,8 +176,44 @@ defmodule Tictactoe.GameServerTest do
   end
 
   defp join_all_players(%{server: pid}) do
-    {:ok, "X"} = GameServer.add_player(pid, "X", "bar")
-    {:ok, "O"} = GameServer.add_player(pid, "O", "foo")
-    :ok
+    {:ok, "X"} = GameServer.add_player(pid, "bar", "X")
+    {:ok, "O"} = GameServer.add_player(pid, "foo", "O")
+
+    first = GameServer.playing_now(pid)
+
+    {:ok, first: first, second: opposite(first)}
   end
+
+  defp win_game(pid, first, second) do
+    :ok = GameServer.play(pid, player(first), [0, 0])
+    :ok = GameServer.play(pid, player(second), [1, 0])
+    :ok = GameServer.play(pid, player(first), [0, 1])
+    :ok = GameServer.play(pid, player(second), [1, 1])
+    {:end, _, _} = GameServer.play(pid, player(first), [0, 2])
+  end
+
+  # Makes the given sign win (left column) regardless of who moves first.
+  defp win_as(pid, sign, first) when first == sign do
+    win_game(pid, sign, opposite(sign))
+  end
+
+  defp win_as(pid, sign, _first) do
+    loser = opposite(sign)
+
+    :ok = GameServer.play(pid, player(loser), [1, 0])
+    :ok = GameServer.play(pid, player(sign), [0, 0])
+    :ok = GameServer.play(pid, player(loser), [1, 1])
+    :ok = GameServer.play(pid, player(sign), [0, 1])
+    :ok = GameServer.play(pid, player(loser), [2, 2])
+    {:end, _, _} = GameServer.play(pid, player(sign), [0, 2])
+  end
+
+  defp opposite("X"), do: "O"
+  defp opposite("O"), do: "X"
+
+  defp player("X"), do: %{"X" => "bar"}
+  defp player("O"), do: %{"O" => "foo"}
+
+  defp winner_outcome("X"), do: :x_wins
+  defp winner_outcome("O"), do: :o_wins
 end
