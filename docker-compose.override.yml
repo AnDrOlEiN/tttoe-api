@@ -1,0 +1,11 @@
+# Local benchmarking override (auto-merged by docker-compose).
+#
+# Publishes the Phoenix app's port directly on the host so the k6 harness can
+# hit the BEAM without going through nginx. The end-to-end path via nginx:80
+# stays available. See bench/README.md.
+#
+# The app reads PORT from .env (3000); nginx's upstream also expects app:3000.
+services:
+  app:
+    ports:
+      - '3000:3000'
